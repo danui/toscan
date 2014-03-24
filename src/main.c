@@ -6,6 +6,7 @@ struct buffer {
     char * txt;
     size_t len;
     size_t cap;
+    char * file_name;
     int lineno;
 };
 
@@ -38,12 +39,13 @@ static int is_blank_line(char * S)
     return 1;
 }
 
-static void print_todo(int lineno, char * S, size_t n, FILE * out)
+static void print_todo(char * file_name, int lineno, char * S, size_t n, FILE * out)
 {
     char * sep = "\r\n\t ";
     char * tok = NULL;
     char * ctx = NULL;
     size_t ncol = 72;
+    size_t linenocol=6;
     size_t cursor;
     size_t k;
     size_t ntok;
@@ -52,7 +54,6 @@ static void print_todo(int lineno, char * S, size_t n, FILE * out)
     /* For now only include outstanding todo items. */
     if (S[1] != ' ') return;
 
-    fprintf(out, "--- Line: %d ---\n", lineno);
     cursor = 0;
     ntok = 0;
     for (tok = strtok_r(S, sep, &ctx); tok; tok = strtok_r(NULL, sep, &ctx)) {
@@ -70,7 +71,8 @@ static void print_todo(int lineno, char * S, size_t n, FILE * out)
         ntok += 1;
         cursor += k;
     }
-    fprintf(out, "\n\n");
+    fprintf(out, "\n%*s %*d\n", ncol-linenocol-1, file_name?file_name:"from line:", linenocol, lineno);
+    fprintf(out, "\n");
 }
 
 static void buffer_flush(struct buffer * buf, FILE * out)
@@ -81,19 +83,22 @@ static void buffer_flush(struct buffer * buf, FILE * out)
     for (b=0; b<buf->len && is_white_space(buf->txt[b]); ++b);
     for (c=buf->len-b; c>0 && is_white_space(buf->txt[b+c-1]); --c);
     buf->txt[b+c] = (char)0;
-    print_todo(buf->lineno, buf->txt+b, c, out);
+    print_todo(buf->file_name, buf->lineno, buf->txt+b, c, out);
     buf->len = 0;
     buf->txt[buf->len] = (char)0;
 }
 
-static void buffer_store(struct buffer * buf, char * line, int lineno)
+static void buffer_store(struct buffer * buf, char * line, char * file_name, int lineno)
 {
     size_t n, k;
     char * new_buf;
     n = strlen(line);
     k = buf->cap;
     while ((buf->len + n + 1) > k) {
-        k += k;
+        if (k == 0)
+            k = 16;
+        else
+            k += k;
     }
     if (k > buf->cap) {
         new_buf = realloc(buf->txt, k);
@@ -104,22 +109,24 @@ static void buffer_store(struct buffer * buf, char * line, int lineno)
         buf->txt = new_buf;
         buf->cap = k;
     }
-    if (buf->len == 0)
+    if (buf->len == 0) {
+        buf->file_name = file_name;
         buf->lineno = lineno;
+    }
     memcpy(buf->txt + buf->len, line, n);
     buf->len += n;
     buf->txt[buf->len] = (char)0;
 }
 
-static void buffer_accept(struct buffer * buf, char * line, int lineno, FILE * out)
+static void buffer_accept(struct buffer * buf, char * line, char * file_name, int lineno, FILE * out)
 {
     if (is_blank_line(line))
         buffer_flush(buf, out);
     else
-        buffer_store(buf, line, lineno);
+        buffer_store(buf, line, file_name, lineno);
 }
 
-static void scan(FILE * in, FILE * out)
+static void scan(FILE * in, FILE * out, char * file_name)
 {
     char * line_str = NULL;
     size_t line_len = 0;
@@ -141,7 +148,7 @@ static void scan(FILE * in, FILE * out)
     line_number = 0;
     while (-1 != getline(&line_str, &line_len, in)) {
         line_number += 1;
-        buffer_accept(&buf, line_str, line_number, out);
+        buffer_accept(&buf, line_str, file_name, line_number, out);
     }
     buffer_flush(&buf, out);
 
@@ -152,6 +159,20 @@ static void scan(FILE * in, FILE * out)
 
 int main(int argc, char ** argv)
 {
-    scan(stdin, stdout);
+    FILE * in = NULL;
+    int i;
+    if (argc == 1) {
+        scan(stdin, stdout, NULL);
+    } else {
+        for (i=1; i < argc; ++i) {
+            if (in)
+                fclose(in);
+            if (NULL == (in = fopen(argv[i], "r"))) {
+                fprintf(stderr, "could not open input file %s\n", argv[i]);
+                exit(EXIT_FAILURE);
+            }
+            scan(in, stdout, argv[i]);
+        }
+    }
     return 0;
 }
