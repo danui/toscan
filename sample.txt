@@ -1,0 +1,48 @@
+This is a sample text file with todo lists scattered about.  The goal of
+the todo scanner is to find these blocks of todo items.  An example of a
+todo item is given below.
+
+[ ] This is an example todo item.
+
+[X] This is an example of one that has been completed.
+
+[C] This is one that has been marked as cancelled.
+
+[?] This is one that we are not sure if we would bother.
+
+[M] This is one that was moved somewhere else.  Like cancelled, but not
+    quite.  It is also the first example that demonstrates line wrap.
+    But really the scanner should be paragraph based.
+
+For example this is a paragraph.
+
+What is a paragraph?  A block of text separated by one or more blank
+lines.  In otherwords...
+
+	BLANK_LINE, LINE, LINE, BLANK_LINE
+
+...is a paragraph with two lines.
+
+
+Now if the first character that is not a whitespace is `[` and the third
+is `]`, and between them is one of the known todo type indicators (or
+perhaps all chars are accepted), then we assume that that paragraph is a
+todo item.
+
+The output of the scanner should be todo items idented nicely.  Perhaps
+with some filtering capability.  Perhaps with line numbers.
+
+Note that todo items can be arbitrarily indented.
+
+	[ ] This is also a todo item.
+
+  [ ] This is another.
+
+              [ ] And another with paragraphs.  This is text to make
+              	  this wrap.
+
+   [ ] This is another with the wrapping all messed up because we
+couldn't give a damn.  Should it be considered a TODO item?  I am not
+sure.  For now we assume that it is.
+
+And that is the end for now.
