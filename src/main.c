@@ -6,6 +6,7 @@ struct buffer {
     char * txt;
     size_t len;
     size_t cap;
+    int lineno;
 };
 
 /**
@@ -37,12 +38,12 @@ static int is_blank_line(char * S)
     return 1;
 }
 
-static void print_todo(char * S, size_t n, FILE * out)
+static void print_todo(int lineno, char * S, size_t n, FILE * out)
 {
     char * sep = "\r\n\t ";
     char * tok = NULL;
     char * ctx = NULL;
-    size_t ncol = 76;
+    size_t ncol = 72;
     size_t cursor;
     size_t k;
     size_t ntok;
@@ -51,6 +52,7 @@ static void print_todo(char * S, size_t n, FILE * out)
     /* For now only include outstanding todo items. */
     if (S[1] != ' ') return;
 
+    printf("--- Line: %d ---\n", lineno);
     cursor = 0;
     ntok = 0;
     for (tok = strtok_r(S, sep, &ctx); tok; tok = strtok_r(NULL, sep, &ctx)) {
@@ -79,12 +81,12 @@ static void buffer_flush(struct buffer * buf, FILE * out)
     for (b=0; b<buf->len && is_white_space(buf->txt[b]); ++b);
     for (c=buf->len-b; c>0 && is_white_space(buf->txt[b+c-1]); --c);
     buf->txt[b+c] = (char)0;
-    print_todo(buf->txt+b, c, out);
+    print_todo(buf->lineno, buf->txt+b, c, out);
     buf->len = 0;
     buf->txt[buf->len] = (char)0;
 }
 
-static void buffer_store(struct buffer * buf, char * line)
+static void buffer_store(struct buffer * buf, char * line, int lineno)
 {
     size_t n, k;
     char * new_buf;
@@ -102,17 +104,19 @@ static void buffer_store(struct buffer * buf, char * line)
         buf->txt = new_buf;
         buf->cap = k;
     }
+    if (buf->len == 0)
+        buf->lineno = lineno;
     memcpy(buf->txt + buf->len, line, n);
     buf->len += n;
     buf->txt[buf->len] = (char)0;
 }
 
-static void buffer_accept(struct buffer * buf, char * line, FILE * out)
+static void buffer_accept(struct buffer * buf, char * line, int lineno, FILE * out)
 {
     if (is_blank_line(line))
         buffer_flush(buf, out);
     else
-        buffer_store(buf, line);
+        buffer_store(buf, line, lineno);
 }
 
 static void scan(FILE * in, FILE * out)
@@ -137,12 +141,7 @@ static void scan(FILE * in, FILE * out)
     line_number = 0;
     while (-1 != getline(&line_str, &line_len, in)) {
         line_number += 1;
-        
-/*         if (is_blank_line(line_str)) */
-/*             fprintf(out, "%5d: ---BLANK---\n", line_number); */
-/*         else */
-/*             fprintf(out, "%5d: %s", line_number, line_str); */
-        buffer_accept(&buf, line_str, out);
+        buffer_accept(&buf, line_str, line_number, out);
     }
 
     free(buf.txt);
