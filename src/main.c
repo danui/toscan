@@ -52,7 +52,7 @@ static void print_todo(int lineno, char * S, size_t n, FILE * out)
     /* For now only include outstanding todo items. */
     if (S[1] != ' ') return;
 
-    printf("--- Line: %d ---\n", lineno);
+    fprintf(out, "--- Line: %d ---\n", lineno);
     cursor = 0;
     ntok = 0;
     for (tok = strtok_r(S, sep, &ctx); tok; tok = strtok_r(NULL, sep, &ctx)) {
