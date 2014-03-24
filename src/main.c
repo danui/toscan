@@ -165,13 +165,12 @@ int main(int argc, char ** argv)
         scan(stdin, stdout, NULL);
     } else {
         for (i=1; i < argc; ++i) {
-            if (in)
-                fclose(in);
             if (NULL == (in = fopen(argv[i], "r"))) {
                 fprintf(stderr, "could not open input file %s\n", argv[i]);
                 exit(EXIT_FAILURE);
             }
             scan(in, stdout, argv[i]);
+            fclose(in);
         }
     }
     return 0;
