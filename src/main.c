@@ -143,6 +143,7 @@ static void scan(FILE * in, FILE * out)
         line_number += 1;
         buffer_accept(&buf, line_str, line_number, out);
     }
+    buffer_flush(&buf, out);
 
     free(buf.txt);
     free(line_str);
