@@ -14,3 +14,5 @@ Things to come...
 
 [ ] Command line flags to tweak what to display.  E.g. completed items
     `[X]`, cancelled `[C]`, not sure items `[?]`
+
+[ ] Nested todo items?
