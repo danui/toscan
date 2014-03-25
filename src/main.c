@@ -71,7 +71,7 @@ static void print_todo(char * file_name, int lineno, char * S, size_t n, FILE * 
         ntok += 1;
         cursor += k;
     }
-    fprintf(out, "\n%*s %*d\n", ncol-linenocol-1, file_name?file_name:"from line:", linenocol, lineno);
+    fprintf(out, "\n%*s %*d\n", (int)ncol-(int)linenocol-1, file_name?file_name:"from line:", (int)linenocol, lineno);
     fprintf(out, "\n");
 }
 
